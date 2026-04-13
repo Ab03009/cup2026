@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>«Դավիթ Գևորգյան» Մրցաշար</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #00ff00;
+            --primary-muted: rgba(0, 255, 0, 0.1);
+            --bg: #000000;
+            --card-bg: #050505;
+            --border: #004400;
+            --text-main: #ffffff;
+            --text-dim: #555555;
+            --sf-zone: rgba(0, 255, 0, 0.08);
+            --ko-zone: rgba(163, 73, 164, 0.15);
+            --out-zone: rgba(255, 0, 0, 0.05);
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .app-container { min-height: 100vh; background: var(--bg); }
+        .content-wrapper { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 800; text-transform: uppercase; }
+        .logo span { color: var(--primary); border-left: 2px solid var(--primary); padding-left: 10px; margin-left: 10px; font-size: 0.8rem; }
+
+        .header-actions { display: flex; gap: 10px; }
+
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+        }
+
+        .modern-table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        .modern-table th { color: var(--text-dim); font-size: 0.7rem; padding: 12px; border-bottom: 1px solid var(--border); text-align: center; }
+        .modern-table td { padding: 14px 12px; text-align: center; border-bottom: 1px solid rgba(0, 255, 0, 0.05); }
+        .name-cell { text-align: left !important; font-weight: 700; width: 30%; }
+        .pts-cell { color: var(--primary); font-weight: 800; font-size: 1.1rem; }
+
+        .zone-sf { background: var(--sf-zone) !important; }
+        .zone-ko { background: var(--ko-zone) !important; }
+        .zone-out { background: var(--out-zone) !important; }
+
+        .rounds-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
+        .round-title { color: var(--primary); font-size: 0.9rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+
+        .match-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: 0.3s;
+            position: relative;
+        }
+        .match-card:hover { border-color: var(--primary); background: var(--primary-muted); }
+        
+        /* Ահա թեքված և նուրբ դիզայնը */
+        .match-meta-mini { 
+            font-size: 0.65rem; 
+            color: var(--text-dim); 
+            font-style: italic;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .match-body { display: flex; justify-content: space-between; align-items: center; }
+        .score-badge { background: #000; color: var(--primary); padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); font-weight: 800; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: #000; border: 1px solid var(--primary); padding: 30px; border-radius: 20px; width: 90%; max-width: 420px; text-align: center; }
+
+        .reset-btn { background: transparent; color: var(--text-dim); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.8rem; }
+        .danger-btn { background: #ff0000; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.8rem; }
+        
+        .confirm-btn { background: var(--primary); color: #000; border: none; padding: 14px; border-radius: 8px; width: 100%; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        .goal-input, .mini-input { width: 100%; padding: 10px; background: #0a0a0a; border: 1px solid var(--border); color: #fff; border-radius: 8px; box-sizing: border-box; }
+        
+        .scorer-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #111; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const App = () => {
+            const initialTeams = ["Off", "Next Level", "Dracarys", "Renes", "Երեք Ոզնի", "Գենացվալե", "Շրջանավարտներ", "Red Storms"];
+            
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [currentScorer, setCurrentScorer] = useState('');
+            const [tempDate, setTempDate] = useState('');
+            const [tempTime, setTempTime] = useState('');
+
+            const getInitialMatches = () => [
+                { id: '1', round: 1, home: "Off", away: "Next Level", date: '13.04', time: '14:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '2', round: 1, home: "Dracarys", away: "Renes", date: '13.04', time: '15:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '3', round: 1, home: "Երեք Ոզնի", away: "Գենացվալե", date: '13.04', time: '16:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '4', round: 1, home: "Red Storms", away: "Շրջանավարտներ", date: '13.04', time: '17:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '5', round: 2, home: "Off", away: "Dracarys", date: '14.04', time: '14:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '6', round: 2, home: "Next Level", away: "Երեք Ոզնի", date: '14.04', time: '15:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '7', round: 2, home: "Renes", away: "Շրջանավարտներ", date: '14.04', time: '16:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '8', round: 2, home: "Գենացվալե", away: "Red Storms", date: '14.04', time: '17:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '9', round: 3, home: "Off", away: "Երեք Ոզնի", date: '15.04', time: '14:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '10', round: 3, home: "Next Level", away: "Renes", date: '15.04', time: '15:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '11', round: 3, home: "Dracarys", away: "Red Storms", date: '15.04', time: '16:00', homeScore: 0, awayScore: 0, status: 'pending' },
+                { id: '12', round: 3, home: "Գենացվալե", away: "Շրջանավարտներ", date: '15.04', time: '17:00', homeScore: 0, awayScore: 0, status: 'pending' }
+            ];
+
+            const [matches, setMatches] = useState(() => {
+                const saved = localStorage.getItem('fb_cup_v5');
+                return saved ? JSON.parse(saved) : getInitialMatches();
+            });
+
+            const [scorers, setScorers] = useState(() => JSON.parse(localStorage.getItem('fb_scorers_v5')) || {});
+            const [selectedMatch, setSelectedMatch] = useState(null);
+
+            useEffect(() => {
+                localStorage.setItem('fb_cup_v5', JSON.stringify(matches));
+                localStorage.setItem('fb_scorers_v5', JSON.stringify(scorers));
+            }, [matches, scorers]);
+
+            useEffect(() => {
+                if (selectedMatch) {
+                    setTempDate(selectedMatch.date);
+                    setTempTime(selectedMatch.time);
+                }
+            }, [selectedMatch]);
+
+            const handleReset = () => {
+                if (window.confirm("Այս գործողությունը կջնջի ամբողջ հաշիվները: Շարունակե՞լ:")) {
+                    localStorage.clear();
+                    setMatches(getInitialMatches());
+                    setScorers({});
+                    window.location.reload();
+                }
+            };
+
+            const getStandings = () => {
+                const table = {};
+                initialTeams.forEach(t => table[t] = { name: t, mp: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 });
+                matches.filter(m => m.status === 'finished').forEach(m => {
+                    const h = table[m.home], a = table[m.away];
+                    h.mp++; a.mp++; h.gf += m.homeScore; h.ga += m.awayScore; a.gf += m.awayScore; a.ga += m.homeScore;
+                    if (m.homeScore > m.awayScore) { h.w++; h.pts += 3; a.l++; }
+                    else if (m.homeScore < m.awayScore) { a.w++; a.pts += 3; h.l++; }
+                    else { h.d++; a.d++; h.pts += 1; a.pts += 1; }
+                });
+                return Object.values(table).sort((a, b) => b.pts - a.pts || (b.gf - b.ga) - (a.gf - a.ga));
+            };
+
+            const addGoal = (isHome) => {
+                if (!currentScorer.trim()) return alert("Գրեք ռմբարկուի անունը");
+                const team = isHome ? selectedMatch.home : selectedMatch.away;
+                setScorers(prev => ({ ...prev, [currentScorer]: { goals: (prev[currentScorer]?.goals || 0) + 1, team } }));
+                setMatches(prev => prev.map(m => m.id === selectedMatch.id ? { ...m, [isHome ? 'homeScore' : 'awayScore']: m[isHome ? 'homeScore' : 'awayScore'] + 1 } : m));
+                setSelectedMatch(prev => ({ ...prev, [isHome ? 'homeScore' : 'awayScore']: prev[isHome ? 'homeScore' : 'awayScore'] + 1 }));
+                setCurrentScorer('');
+            };
+
+            const saveMatch = () => {
+                setMatches(prev => prev.map(m => m.id === selectedMatch.id ? { ...m, status: 'finished', date: tempDate, time: tempTime } : m));
+                setSelectedMatch(null);
+            };
+
+            const standings = getStandings();
+
+            return (
+                <div className="app-container">
+                    <div className="content-wrapper">
+                        <header className="main-header">
+                            <div className="logo">«Դավիթ Գևորգյան» <span>ամենամյա մրցաշար</span></div>
+                            <div className="header-actions">
+                                {isAdmin && <button className="danger-btn" onClick={handleReset}>RESET</button>}
+                                <button className="reset-btn" onClick={() => {
+                                    if(!isAdmin) { if(prompt("Pass:") === "Rob03009") setIsAdmin(true); }
+                                    else setIsAdmin(false);
+                                }}>{isAdmin ? "Logout" : "Admin"}</button>
+                            </div>
+                        </header>
+
+                        <section className="section-card">
+                            <table className="modern-table">
+                                <thead>
+                                    <tr><th>#</th><th className="name-cell">Թիմ</th><th>Խ</th><th>Հ</th><th>Ո</th><th>Պ</th><th>+-</th><th>Մ</th></tr>
+                                </thead>
+                                <tbody>
+                                    {standings.map((t, i) => (
+                                        <tr key={i} className={i < 2 ? "zone-sf" : i < 6 ? "zone-ko" : i === 7 ? "zone-out" : ""}>
+                                            <td>{i+1}</td><td className="name-cell">{t.name}</td>
+                                            <td>{t.mp}</td><td>{t.w}</td><td>{t.d}</td><td>{t.l}</td>
+                                            <td>{t.gf}-{t.ga}</td><td className="pts-cell">{t.pts}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </section>
+
+                        <div className="rounds-container">
+                            {[1, 2, 3].map(r => (
+                                <div key={r} className="section-card">
+                                    <div className="round-title">Փուլ {r}</div>
+                                    {matches.filter(m => m.round === r).map(m => (
+                                        <div key={m.id} className="match-card" onClick={() => isAdmin && setSelectedMatch(m)} style={{cursor: isAdmin ? 'pointer' : 'default'}}>
+                                            <div className="match-meta-mini">
+                                                <span> {m.date}</span>
+                                                <span>{m.time}</span>
+                                            </div>
+                                            <div className="match-body">
+                                                <span style={{fontWeight: 700}}>{m.home}</span>
+                                                <div className="score-badge">{m.status === 'finished' ? `${m.homeScore}:${m.awayScore}` : 'VS'}</div>
+                                                <span style={{fontWeight: 700}}>{m.away}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="section-card">
+                            <h3>Ռմբարկուներ</h3>
+                            {Object.entries(scorers).sort((a,b) => b[1].goals - a[1].goals).map(([name, d], i) => (
+                                <div key={i} className="scorer-row">
+                                    <div><span style={{fontWeight: 700}}>{name}</span><br/><small style={{color: '#444'}}>{d.team}</small></div>
+                                    <div style={{color: 'var(--primary)', fontWeight: 800}}>{d.goals}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {selectedMatch && (
+                        <div className="modal-overlay">
+                            <div className="modal-box">
+                                <div style={{display: 'flex', gap: '10px', marginBottom: '15px'}}>
+                                    <div style={{flex:1, textAlign:'left'}}><small style={{color: '#666'}}>Ամսաթիվ</small><input className="mini-input" value={tempDate} onChange={e => setTempDate(e.target.value)} /></div>
+                                    <div style={{flex:1, textAlign:'left'}}><small style={{color: '#666'}}>Ժամ</small><input className="mini-input" value={tempTime} onChange={e => setTempTime(e.target.value)} /></div>
+                                </div>
+                                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0'}}>
+                                    <span style={{flex:1}}>{selectedMatch.home}</span>
+                                    <span style={{fontSize: '2rem', color: 'var(--primary)', fontWeight: 800, flex:1}}>{selectedMatch.homeScore}:{selectedMatch.awayScore}</span>
+                                    <span style={{flex:1}}>{selectedMatch.away}</span>
+                                </div>
+                                <input className="goal-input" placeholder="Անուն..." value={currentScorer} onChange={e => setCurrentScorer(e.target.value)} />
+                                <div style={{display: 'flex', gap: '10px'}}>
+                                    <button className="confirm-btn" style={{background: '#222', color: '#fff'}} onClick={() => addGoal(true)}>+ {selectedMatch.home}</button>
+                                    <button className="confirm-btn" style={{background: '#222', color: '#fff'}} onClick={() => addGoal(false)}>+ {selectedMatch.away}</button>
+                                </div>
+                                <button className="confirm-btn" onClick={saveMatch}>Հաստատել</button>
+                                <button onClick={() => setSelectedMatch(null)} style={{marginTop: '15px', background: 'none', border: 'none', color: '#666', cursor: 'pointer'}}>Փակել</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
